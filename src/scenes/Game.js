@@ -5,17 +5,25 @@ import {
   previewTrajectory,
 } from "../game/physics.js";
 
+import { createTarget, sweepTarget, attachArrow, attachedPosition } from "../game/target.js";
+import { scoreHit } from "../game/scoring.js";
+
 const ORIGIN = { x: 170, y: 455 };
 
 export class Game {
-  constructor() {
+  constructor({ target = createTarget(), arrows = 10 } = {}) {
+    this.target = target;
+    this.remainingArrows = arrows;
+    this.score = 0;
+    this.attached = [];
+    this.scoreTexts = [];
     this.arrow = null;
     this.grounded = [];
     this.drag = null;
   }
 
   onPointerDown(point) {
-    if (this.drag || this.arrow || point.buttons !== 1) return;
+    if (this.drag || this.arrow || this.remainingArrows <= 0 || point.buttons !== 1) return;
     this.drag = { start: point, end: point, pointerId: point.pointerId };
   }
 
@@ -27,7 +35,10 @@ export class Game {
     if (this.drag?.pointerId !== point.pointerId) return;
     const aim = aimFromDrag(this.drag.start, point);
     this.drag = null;
-    if (!aim.cancelled) this.arrow = launch(ORIGIN, aim.speed, aim.angle);
+    if (!aim.cancelled) {
+      this.arrow = launch(ORIGIN, aim.speed, aim.angle);
+      this.remainingArrows--;
+    }
   }
 
   onPointerCancel(point) {
@@ -39,8 +50,23 @@ export class Game {
   }
 
   update(dt) {
+    this.scoreTexts = this.scoreTexts
+      .map(text => ({ ...text, age: text.age + dt }))
+      .filter(text => text.age < 1.2);
     if (!this.arrow) return;
-    this.arrow = advanceArrow(this.arrow, dt);
+    const previous = this.arrow;
+    // Sweep before boundary removal so fast arrows cannot skip the target.
+    const next = advanceArrow(previous, dt, { width: Infinity });
+    const hit = next && sweepTarget(previous, next, this.target);
+    if (hit) {
+      const points = scoreHit(this.target, hit.y);
+      this.score += points;
+      this.attached.push(attachArrow(next, hit, this.target));
+      this.scoreTexts.push({ x: hit.x, y: hit.y, points, age: 0 });
+      this.arrow = null;
+      return;
+    }
+    this.arrow = next && next.x >= 0 && next.x <= 1280 ? next : null;
     if (this.arrow?.stopped) {
       this.grounded.push(this.arrow);
       if (this.grounded.length > 40) this.grounded.shift();
@@ -58,10 +84,25 @@ export class Game {
     ctx.fillText("Archer Line", 48, 65);
     ctx.font = "22px sans-serif";
     ctx.fillText(
-      this.arrow ? "箭矢飛行中…" : "任意處按住往後拉，放開射箭",
+      this.arrow ? "箭矢飛行中…" : this.remainingArrows > 0 ? "任意處按住往後拉，放開射箭" : "箭矢已用完",
       48,
       105,
     );
+    ctx.fillText(`分數：${this.score}`, 480, 65);
+    ctx.fillText("剩餘箭矢", 680, 65);
+    for (let i = 0; i < this.remainingArrows; i++)
+      this.drawArrow(ctx, { x: 835 + i * 38, y: 58, angle: -Math.PI / 4 });
+    this.drawTarget(ctx);
+    for (const arrow of this.attached)
+      this.drawArrow(ctx, attachedPosition(arrow, this.target));
+    for (const text of this.scoreTexts) {
+      ctx.save();
+      ctx.globalAlpha = 1 - text.age / 1.2;
+      ctx.fillStyle = "#a72e2e";
+      ctx.font = "bold 28px sans-serif";
+      ctx.fillText(`+${text.points}${text.points === this.target.rings[0].score ? " 正中紅心！" : ""}`, text.x - 90, text.y - 25 - text.age * 55);
+      ctx.restore();
+    }
     // Geometric archer silhouette, standing on the ground.
     ctx.beginPath();
     ctx.arc(116, 417, 18, 0, Math.PI * 2);
@@ -125,7 +166,37 @@ export class Game {
       });
     }
     for (const arrow of this.grounded) this.drawArrow(ctx, arrow);
-    if (this.arrow) this.drawArrow(ctx, this.arrow);
+    if (this.arrow) {
+      if (this.arrow.y < 0) {
+        ctx.fillStyle = "#16342f";
+        ctx.beginPath();
+        ctx.moveTo(this.arrow.x, 8);
+        ctx.lineTo(this.arrow.x - 8, 22);
+        ctx.lineTo(this.arrow.x + 8, 22);
+        ctx.closePath();
+        ctx.fill();
+      } else this.drawArrow(ctx, this.arrow);
+    }
+  }
+
+  drawTarget(ctx) {
+    const { x, y, width, height, rings } = this.target;
+    ctx.strokeStyle = "#765139";
+    ctx.lineWidth = 8;
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(x, 550);
+    ctx.moveTo(x, 520);
+    ctx.lineTo(x - 40, 560);
+    ctx.moveTo(x, 520);
+    ctx.lineTo(x + 40, 560);
+    ctx.stroke();
+    for (const ring of [...rings].reverse()) {
+      ctx.fillStyle = ring.color;
+      ctx.beginPath();
+      ctx.ellipse(x, y, width * ring.radius / 2, height * ring.radius / 2, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
   }
 
   drawArrow(ctx, arrow) {

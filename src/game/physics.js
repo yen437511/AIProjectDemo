@@ -52,7 +52,7 @@ export function advanceArrow(
     if (next.x >= 0 && next.x <= width)
       return { ...next, y: ground, angle: heading(next), stopped: true };
   }
-  if (next.x < 0 || next.x > width || next.y < 0 || next.y > height)
+  if (next.x < 0 || next.x > width || next.y > height)
     return null;
   return { ...next, angle: heading(next), stopped: false };
 }
