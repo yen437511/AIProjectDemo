@@ -26,7 +26,7 @@ export class Game {
     this.shake = 0;
     this.pauseUI = new Menu(
       "",
-      [button("暫停", 115, () => app?.pause(this), { x: 1070, w: 192 })],
+      [button("暫停", 20, () => app?.pause(this), { x: 1070, w: 192, h: 64 })],
       { overlay: true },
     );
     this.pauseUI.audio = app?.audio;
@@ -361,7 +361,8 @@ export class Game {
       ctx.fillRect(b.x, b.y, b.w, b.h);
       ctx.fillStyle = "#16342f";
       ctx.font = "32px sans-serif";
-      ctx.fillText(b.label, b.x + 55, b.y + 95);
+      ctx.textAlign = "center";
+      ctx.fillText(b.label, b.x + b.w / 2, b.y + b.h / 2 + 11);
     }
     ctx.restore();
     if (this.arrow) {

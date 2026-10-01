@@ -1,9 +1,13 @@
 import { describe, it, expect } from "vitest";
+import { manifest as assetManifest } from "../assets/manifest.js";
 import { ART_IDS, createArt, levelArt } from "./art.js";
 
 describe("art preloading and fallback", () => {
   it("maps five levels and includes all eight unique assets", () => {
     expect(new Set(ART_IDS).size).toBe(8);
+    expect(Object.keys(assetManifest).sort()).toEqual([...ART_IDS].sort());
+    for (const url of Object.values(assetManifest))
+      expect(url).toMatch(/\.webp$/);
     expect([1, 2, 3, 4, 5].map(levelArt)).toEqual([
       "meadow",
       "forest",
