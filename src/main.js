@@ -8,6 +8,26 @@ import { createStorage } from "./core/storage.js";
 
 import { createAudio } from "./core/audio.js";
 
+import { createArt } from "./core/art.js";
+import { manifest } from "./assets/manifest.js";
+const art = createArt(
+  manifest,
+  (url) =>
+    new Promise((resolve, reject) => {
+      const image = new Image();
+      const timer = setTimeout(() => reject(new Error("Image timeout")), 15000);
+      image.onload = () => {
+        clearTimeout(timer);
+        resolve(image);
+      };
+      image.onerror = () => {
+        clearTimeout(timer);
+        reject(new Error("Image failed"));
+      };
+      image.src = url;
+    }),
+);
+art.preload();
 const audio = createAudio({
   contextFactory: () =>
     new (window.AudioContext || window.webkitAudioContext)(),
@@ -26,6 +46,7 @@ const app = createApp(
   manager,
   createStorage(() => window.localStorage),
   audio,
+  art,
 );
 app.title();
 const keydown = (event) => {

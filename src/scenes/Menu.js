@@ -42,6 +42,7 @@ export class Menu {
     ctx.save();
     ctx.fillStyle = this.overlay ? "#16342fe8" : "#16342f";
     ctx.fillRect(0, 0, 1280, 720);
+    this.drawBackdrop?.(ctx);
     ctx.fillStyle = "#f6f1db";
     ctx.textAlign = "center";
     ctx.font = "bold 48px sans-serif";

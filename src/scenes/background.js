@@ -1,4 +1,8 @@
-export function drawBackground(ctx, time = 0) {
+export function drawBackground(ctx, time = 0, image = null) {
+  if (image) {
+    ctx.drawImage(image, 0, 0, 1280, 720);
+    return;
+  }
   const sky = ctx.createLinearGradient(0, 0, 0, 560);
   sky.addColorStop(0, "#76b8cc");
   sky.addColorStop(1, "#e3edcf");

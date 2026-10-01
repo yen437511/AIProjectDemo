@@ -4,9 +4,10 @@ import { HowTo } from "./HowTo.js";
 import { Game } from "./Game.js";
 import { Pause } from "./Pause.js";
 import { Result } from "./Result.js";
-export function createApp(manager, storage, audio) {
+export function createApp(manager, storage, audio, art) {
   const app = {
     manager,
+    art,
     audio,
     storage,
     show(scene) {

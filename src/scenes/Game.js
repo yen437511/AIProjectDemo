@@ -14,6 +14,8 @@ import { targetAtTime, sweepMovingTarget } from "../game/level.js";
 
 import { drawBackground } from "./background.js";
 
+import { levelArt } from "../core/art.js";
+
 const ORIGIN = { x: 170, y: 455 };
 
 export class Game {
@@ -214,7 +216,15 @@ export class Game {
         Math.sin(this.elapsed * 100) * this.shake * 18,
         Math.cos(this.elapsed * 90) * this.shake * 10,
       );
-    drawBackground(ctx, this.elapsed);
+    drawBackground(
+      ctx,
+      this.elapsed,
+      this.app?.art?.get(levelArt(this.level.id)),
+    );
+    if (this.app?.art?.get(levelArt(this.level.id))) {
+      ctx.fillStyle = "#f6f1dbcc";
+      ctx.fillRect(24, 20, 1020, 100);
+    }
     for (const p of this.particles) {
       ctx.globalAlpha = Math.min(1, p.life * 2);
       ctx.fillStyle = p.color;
@@ -271,23 +281,27 @@ export class Game {
       );
       ctx.restore();
     }
-    // Geometric archer silhouette, standing on the ground.
-    ctx.beginPath();
-    ctx.arc(116, 417, 18, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.strokeStyle = "#16342f";
-    ctx.lineWidth = 13;
-    ctx.lineCap = "round";
-    ctx.beginPath();
-    ctx.moveTo(116, 440);
-    ctx.lineTo(116, 500);
-    ctx.moveTo(116, 500);
-    ctx.lineTo(90, 553);
-    ctx.moveTo(116, 500);
-    ctx.lineTo(140, 553);
-    ctx.moveTo(116, 453);
-    ctx.lineTo(170, 455);
-    ctx.stroke();
+    const archer = this.app?.art?.get("archer");
+    if (archer) ctx.drawImage(archer, 86, 417, 84, 143);
+    else {
+      // Geometric archer silhouette, standing on the ground.
+      ctx.beginPath();
+      ctx.arc(116, 417, 18, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = "#16342f";
+      ctx.lineWidth = 13;
+      ctx.lineCap = "round";
+      ctx.beginPath();
+      ctx.moveTo(116, 440);
+      ctx.lineTo(116, 500);
+      ctx.moveTo(116, 500);
+      ctx.lineTo(90, 553);
+      ctx.moveTo(116, 500);
+      ctx.lineTo(140, 553);
+      ctx.moveTo(116, 453);
+      ctx.lineTo(170, 455);
+      ctx.stroke();
+    }
     const aim = this.drag ? aimFromDrag(this.drag.start, this.drag.end) : null;
     const angle = aim?.angle ?? Math.PI / 6;
     const pull = (aim?.power ?? 0) * 45;
@@ -366,16 +380,44 @@ export class Game {
 
   drawTarget(ctx, target) {
     const { x, y, width, height, rings } = target;
-    ctx.strokeStyle = "#765139";
-    ctx.lineWidth = 8;
-    ctx.beginPath();
-    ctx.moveTo(x, y);
-    ctx.lineTo(x, 550);
-    ctx.moveTo(x, 520);
-    ctx.lineTo(x - 40, 560);
-    ctx.moveTo(x, 520);
-    ctx.lineTo(x + 40, 560);
-    ctx.stroke();
+    const art = this.app?.art?.get("target");
+    if (art) {
+      // The legs stay rooted at y=560; only the face follows target motion.
+      const standTop = Math.min(y + height / 2, 540);
+      ctx.drawImage(
+        art,
+        0,
+        art.height * 0.69,
+        art.width,
+        art.height * 0.31,
+        x - 42,
+        standTop,
+        84,
+        560 - standTop,
+      );
+      ctx.drawImage(
+        art,
+        art.width * 0.14,
+        0,
+        art.width * 0.72,
+        art.height * 0.69,
+        x - width / 2 - 4,
+        y - height / 2 - 4,
+        width + 8,
+        height + 8,
+      );
+    } else {
+      ctx.strokeStyle = "#765139";
+      ctx.lineWidth = 8;
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.lineTo(x, 550);
+      ctx.moveTo(x, 520);
+      ctx.lineTo(x - 40, 560);
+      ctx.moveTo(x, 520);
+      ctx.lineTo(x + 40, 560);
+      ctx.stroke();
+    }
     for (const ring of [...rings].reverse()) {
       ctx.fillStyle = ring.color;
       ctx.beginPath();
@@ -390,6 +432,7 @@ export class Game {
       );
       ctx.fill();
     }
+    ctx.globalAlpha = 1;
   }
 
   drawArrow(ctx, arrow) {
