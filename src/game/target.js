@@ -6,8 +6,14 @@ export const DEFAULT_RINGS = [
   { radius: 1, score: 2, color: "#f4f0dc" },
 ];
 
-export function createTarget({ x = 1000, y = 400, width = 42, height = 220, rings = DEFAULT_RINGS } = {}) {
-  return { x, y, width, height, rings: rings.map(ring => ({ ...ring })) };
+export function createTarget({
+  x = 1000,
+  y = 400,
+  width = 42,
+  height = 220,
+  rings = DEFAULT_RINGS,
+} = {}) {
+  return { x, y, width, height, rings: rings.map((ring) => ({ ...ring })) };
 }
 
 // The side-view target face lies on x; height determines scoring distance.
@@ -22,9 +28,17 @@ export function sweepTarget(previous, next, target) {
 }
 
 export function attachArrow(arrow, hit, target) {
-  return { angle: arrow.angle ?? Math.atan2(arrow.vy, arrow.vx), offsetX: hit.x - target.x, offsetY: hit.y - target.y };
+  return {
+    angle: arrow.angle ?? Math.atan2(arrow.vy, arrow.vx),
+    offsetX: hit.x - target.x,
+    offsetY: hit.y - target.y,
+  };
 }
 
 export function attachedPosition(attachment, target) {
-  return { x: target.x + attachment.offsetX, y: target.y + attachment.offsetY, angle: attachment.angle };
+  return {
+    x: target.x + attachment.offsetX,
+    y: target.y + attachment.offsetY,
+    angle: attachment.angle,
+  };
 }

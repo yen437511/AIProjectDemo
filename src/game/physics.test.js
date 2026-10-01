@@ -45,12 +45,28 @@ describe("shooting physics", () => {
       Math.PI / 4,
     );
   });
-  it("removes arrows leaving any boundary", () => {
+  it("removes arrows leaving the sides or bottom", () => {
     expect(
       advanceArrow({ x: 1279, y: 100, vx: 500, vy: 0 }, 1 / 60),
     ).toBeNull();
     expect(advanceArrow({ x: 1, y: 100, vx: -500, vy: 0 }, 1 / 60)).toBeNull();
-    expect(advanceArrow({ x: 100, y: 1, vx: 0, vy: -500 }, 1 / 60)).toBeNull();
+    expect(
+      advanceArrow({ x: 100, y: 719, vx: 0, vy: 500 }, 1 / 60, {
+        ground: 1000,
+      }),
+    ).toBeNull();
+  });
+  it("keeps high shots above the screen until they fall back to ground", () => {
+    let arrow = launch({ x: 170, y: 455 }, 900, Math.PI / 2);
+    let above = false;
+    for (let i = 0; i < 300 && !arrow.stopped; i++) {
+      arrow = advanceArrow(arrow, 1 / 60);
+      expect(arrow).not.toBeNull();
+      above ||= arrow.y < 0;
+    }
+    expect(above).toBe(true);
+    expect(arrow.stopped).toBe(true);
+    expect(arrow.y).toBe(560);
   });
   it("limits preview to the first 30 percent of flight", () => {
     const state = launch({ x: 170, y: 455 }, 600, Math.PI / 4);

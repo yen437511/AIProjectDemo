@@ -5,7 +5,12 @@ import {
   previewTrajectory,
 } from "../game/physics.js";
 
-import { createTarget, sweepTarget, attachArrow, attachedPosition } from "../game/target.js";
+import {
+  createTarget,
+  sweepTarget,
+  attachArrow,
+  attachedPosition,
+} from "../game/target.js";
 import { scoreHit } from "../game/scoring.js";
 
 const ORIGIN = { x: 170, y: 455 };
@@ -23,7 +28,13 @@ export class Game {
   }
 
   onPointerDown(point) {
-    if (this.drag || this.arrow || this.remainingArrows <= 0 || point.buttons !== 1) return;
+    if (
+      this.drag ||
+      this.arrow ||
+      this.remainingArrows <= 0 ||
+      point.buttons !== 1
+    )
+      return;
     this.drag = { start: point, end: point, pointerId: point.pointerId };
   }
 
@@ -51,8 +62,8 @@ export class Game {
 
   update(dt) {
     this.scoreTexts = this.scoreTexts
-      .map(text => ({ ...text, age: text.age + dt }))
-      .filter(text => text.age < 1.2);
+      .map((text) => ({ ...text, age: text.age + dt }))
+      .filter((text) => text.age < 1.2);
     if (!this.arrow) return;
     const previous = this.arrow;
     // Sweep before boundary removal so fast arrows cannot skip the target.
@@ -84,7 +95,11 @@ export class Game {
     ctx.fillText("Archer Line", 48, 65);
     ctx.font = "22px sans-serif";
     ctx.fillText(
-      this.arrow ? "箭矢飛行中…" : this.remainingArrows > 0 ? "任意處按住往後拉，放開射箭" : "箭矢已用完",
+      this.arrow
+        ? "箭矢飛行中…"
+        : this.remainingArrows > 0
+          ? "任意處按住往後拉，放開射箭"
+          : "箭矢已用完",
       48,
       105,
     );
@@ -100,7 +115,11 @@ export class Game {
       ctx.globalAlpha = 1 - text.age / 1.2;
       ctx.fillStyle = "#a72e2e";
       ctx.font = "bold 28px sans-serif";
-      ctx.fillText(`+${text.points}${text.points === this.target.rings[0].score ? " 正中紅心！" : ""}`, text.x - 90, text.y - 25 - text.age * 55);
+      ctx.fillText(
+        `+${text.points}${text.points === this.target.rings[0].score ? " 正中紅心！" : ""}`,
+        text.x - 90,
+        text.y - 25 - text.age * 55,
+      );
       ctx.restore();
     }
     // Geometric archer silhouette, standing on the ground.
@@ -194,7 +213,15 @@ export class Game {
     for (const ring of [...rings].reverse()) {
       ctx.fillStyle = ring.color;
       ctx.beginPath();
-      ctx.ellipse(x, y, width * ring.radius / 2, height * ring.radius / 2, 0, 0, Math.PI * 2);
+      ctx.ellipse(
+        x,
+        y,
+        (width * ring.radius) / 2,
+        (height * ring.radius) / 2,
+        0,
+        0,
+        Math.PI * 2,
+      );
       ctx.fill();
     }
   }
