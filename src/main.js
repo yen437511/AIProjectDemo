@@ -3,12 +3,12 @@ import { WIDTH, HEIGHT, resizeCanvas } from "./core/scaling.js";
 import { SceneManager } from "./core/sceneManager.js";
 import { attachInput } from "./core/input.js";
 import { startLoop } from "./core/loop.js";
-import { Placeholder } from "./scenes/Placeholder.js";
+import { Game } from "./scenes/Game.js";
 
 const canvas = document.querySelector("#game");
 const ctx = canvas.getContext("2d");
 const manager = new SceneManager();
-manager.push(new Placeholder());
+manager.push(new Game());
 const resize = () =>
   resizeCanvas(
     canvas,
