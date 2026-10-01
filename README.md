@@ -14,6 +14,18 @@
 - `npm run lint`：執行 ESLint。
 - `npm run format`：檢查 Prettier 格式；修正使用 `npx prettier --write .`。
 
+## GitHub Pages 部署
+
+遊玩網址：[Archer Line](https://yen437511.github.io/AIProjectDemo/)。首次部署成功後即可開啟。
+
+先在 GitHub repository 的 **Settings → Pages → Build and deployment → Source** 選擇 **GitHub Actions**。
+`.github/workflows/deploy.yml` 會在推送到 `main` 時自動部署，也可從 Actions 頁面手動執行。
+Workflow 使用 Node.js 22，依序執行 `npm ci`、`npm test`、`npm run build`；測試與建置成功後，
+透過 `actions/upload-pages-artifact` 上傳 `dist/`，再由 `actions/deploy-pages` 發布。
+可在 Actions 的執行紀錄查看部署結果與 `github-pages` 環境網址。
+
+Vite 建置時的 base 為 `/AIProjectDemo/`，使 JavaScript、CSS 等資源使用正確的 GitHub Pages 子路徑。
+
 架構：原生 JavaScript ES Modules + HTML5 Canvas，不使用 TypeScript 或遊戲框架。
 `src/main.js` 組裝應用；`src/core/scaling.js` 管理 1280×720 邏輯座標、等比縮放與 DPR；
 `loop.js` 提供 60Hz 固定步長更新與 rAF 繪製，隱藏分頁暫停並清除累積時間；
