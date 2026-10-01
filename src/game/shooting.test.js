@@ -1,10 +1,11 @@
 import { it, expect } from "vitest";
+import { createTarget } from "./target.js";
 import { Game } from "../scenes/Game.js";
 
 const down = { x: 400, y: 300, pointerId: 1, buttons: 1 };
 const release = { x: 310, y: 390, pointerId: 1, buttons: 0 };
 it("owns one pointer, cancels gestures, and blocks shots during flight", () => {
-  const game = new Game();
+  const game = new Game({ target: createTarget({ y: 100 }) });
   game.onPointerDown(down);
   game.onPointerUp({ ...release, pointerId: 2 });
   expect(game.arrow).toBeNull();
