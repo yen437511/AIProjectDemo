@@ -1,8 +1,7 @@
-# Archer Line
+# Project Guidance
 
-瀏覽器 2D 橫向射箭遊戲：拖曳瞄準、放開射箭，挑戰環靶與關卡。
-介面採繁體中文，桌機與手機共用 Pointer Events，畫面以 Canvas 幾何繪製。
-目前是專案骨架版本，顯示背景與標題 placeholder。
+只實作目前任務範圍。純邏輯不得依賴 DOM，並以 Vitest 驗證。
+完成前 `npm test` 與 `npm run build` 必須通過。
 
 ## Build & Test
 

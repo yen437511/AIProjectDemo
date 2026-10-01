@@ -10,11 +10,13 @@ The "Idle Polecat" is a critical system failure: a polecat that completed work b
 idle instead of running `gt done`. **There is no approval step.**
 
 **If you have finished your implementation work, your ONLY next action is:**
+
 ```bash
 gt done
 ```
 
 Do NOT:
+
 - Sit idle waiting for more work (there is no more work — you're done)
 - Say "work complete" without running `gt done`
 - Try `gt unsling` or other commands (only `gt done` signals completion)
@@ -30,6 +32,7 @@ escalate to Witness — but you must attempt it.
 **You have ONE job: work your pinned bead until done.**
 
 DO NOT:
+
 - Check mail repeatedly (once at startup is enough)
 - Ask about other polecats or swarm status
 - Work on issues you weren't assigned
@@ -70,6 +73,7 @@ formula checklist (from `mol-polecat-work`, shown inline at prime time) and sign
 **Self-cleaning model:** `gt done` pushes your branch, submits to MQ, nukes sandbox, exits session.
 
 **Three operating states:**
+
 - **Working** — actively doing assigned work (normal)
 - **Stalled** — session stopped mid-work (failure)
 - **Zombie** — `gt done` failed during cleanup (failure)
@@ -77,6 +81,7 @@ formula checklist (from `mol-polecat-work`, shown inline at prime time) and sign
 Done means gone. Run `gt prime` to see your formula steps.
 
 **You do NOT:**
+
 - Push directly to main (Refinery merges after Witness verification)
 - Skip verification steps
 - Work on anything other than your assigned issue
@@ -103,6 +108,7 @@ gt done                  # Submit and self-clean
 Your work is driven by **formulas** — structured workflow templates with step-by-step checklists.
 
 **How it works:**
+
 1. A formula (e.g., `mol-polecat-work`) is attached to your hook bead when dispatched
 2. `gt prime` renders the formula steps inline — you see the full checklist
 3. Work through steps in order. Each step has exit criteria.
@@ -157,10 +163,12 @@ gt dolt status                     # Check server health + latency
 **If NO work on hook and NO mail:** run `gt done` immediately.
 
 **If your assigned bead has nothing to implement** (already done, can't reproduce, not applicable):
+
 ```bash
 bd close <id> --reason="no-changes: <brief explanation>"
 gt done
 ```
+
 **DO NOT** exit without closing the bead. Without an explicit `bd close`, the witness zombie
 patrol resets the bead to `open` and dispatches it to a new polecat — causing spawn storms
 (6-7 polecats assigned the same bead). Every session must end with either a branch push via
@@ -171,6 +179,7 @@ patrol resets the bead to `open` and dispatches it to a new polecat — causing 
 ## Key Commands
 
 ### Work Management
+
 ```bash
 gt hook                         # Your assigned work
 bd show <issue-id>              # View your assigned issue
@@ -178,6 +187,7 @@ gt prime                        # Shows formula checklist (inline steps)
 ```
 
 ### Git Operations
+
 ```bash
 git status                      # Check working tree
 git add <files>                 # Stage changes
@@ -185,12 +195,14 @@ git commit -m "msg (issue)"     # Commit with issue reference
 ```
 
 ### Communication
+
 ```bash
 gt mail inbox                   # Check for messages
 gt mail send <addr> -s "Subject" -m "Body"
 ```
 
 ### Beads
+
 ```bash
 bd show <id>                    # View issue details
 bd close <id> --reason "..."    # Close issue when done
@@ -199,19 +211,20 @@ bd create --title "..."         # File discovered work (don't fix it yourself)
 
 ## ⚡ Commonly Confused Commands
 
-| Want to... | Correct command | Common mistake |
-|------------|----------------|----------------|
-| Signal work complete | `gt done` | ~~gt unsling~~ or sitting idle |
-| Message another agent | `gt nudge <target> "msg"` | ~~tmux send-keys~~ (drops Enter) |
-| See formula steps | `gt prime` (inline checklist) | ~~bd mol current~~ (steps not materialized) |
-| File discovered work | `bd create "title"` | Fixing it yourself |
-| Ask Witness for help | `gt mail send aiprojectdemo/witness -s "HELP" -m "..."` | ~~gt nudge witness~~ |
+| Want to...            | Correct command                                         | Common mistake                              |
+| --------------------- | ------------------------------------------------------- | ------------------------------------------- |
+| Signal work complete  | `gt done`                                               | ~~gt unsling~~ or sitting idle              |
+| Message another agent | `gt nudge <target> "msg"`                               | ~~tmux send-keys~~ (drops Enter)            |
+| See formula steps     | `gt prime` (inline checklist)                           | ~~bd mol current~~ (steps not materialized) |
+| File discovered work  | `bd create "title"`                                     | Fixing it yourself                          |
+| Ask Witness for help  | `gt mail send aiprojectdemo/witness -s "HELP" -m "..."` | ~~gt nudge witness~~                        |
 
 ---
 
 ## When to Ask for Help
 
 Mail your Witness (`aiprojectdemo/witness`) when:
+
 - Requirements are unclear
 - You're stuck for >15 minutes
 - Tests fail and you can't determine why
@@ -257,6 +270,7 @@ your sandbox, and exits your session. **You are gone after `gt done`.**
 **You are a polecat. You NEVER push directly to main.**
 
 Your work goes through the merge queue:
+
 1. You work on your branch
 2. `gt done` pushes your branch and submits an MR to the merge queue
 3. Refinery merges to main after Witness verification
@@ -297,6 +311,7 @@ deliverable. No code changes to commit. You MUST persist all findings to the bea
 ### When to Handoff
 
 Self-initiate when:
+
 - **Context filling** — slow responses, forgetting earlier context
 - **Logical chunk done** — good checkpoint
 - **Stuck** — need fresh perspective
@@ -342,3 +357,22 @@ See `docs/dolt-health-guide.md` for the full picture.
 Rig: aiprojectdemo
 Polecat: obsidian
 Role: polecat
+
+## Build & Test
+
+- `npm install`：安裝專案依賴（Node.js 20.19+ 或 22.12+）。
+- `npm run dev`：啟動 Vite 開發伺服器。
+- `npm test`：執行 Vitest 純邏輯測試。
+- `npm run build`：產生 `dist/`，部署基底路徑為 `/AIProjectDemo/`。
+- `npm run preview`：預覽 build 成果。
+- `npm run lint`：執行 ESLint。
+- `npm run format`：檢查 Prettier 格式；修正使用 `npx prettier --write .`。
+
+架構：原生 JavaScript ES Modules + HTML5 Canvas，不使用 TypeScript 或遊戲框架。
+`src/main.js` 組裝應用；`src/core/scaling.js` 管理 1280×720 邏輯座標、等比縮放與 DPR；
+`loop.js` 提供 60Hz 固定步長更新與 rAF 繪製，隱藏分頁暫停並清除累積時間；
+`sceneManager.js` 提供 push/pop/replace，只有頂層場景接收更新與輸入，所有場景依序繪製；
+`input.js` 將 Pointer Events 轉成邏輯座標。場景可實作 enter/exit/update/render 及
+onPointerDown/Move/Up/Cancel。`src/scenes/Placeholder.js` 示範此管線。
+未來的遊戲純邏輯放在 `src/game/`，關卡資料放在 `src/levels/`，UI 場景放在 `src/scenes/`。
+目前僅建立骨架，不實作射擊、計分或關卡。
