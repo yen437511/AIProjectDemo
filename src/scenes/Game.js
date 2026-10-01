@@ -12,16 +12,22 @@ import { calculateStars, scoreHit } from "../game/scoring.js";
 import { levels } from "../levels/levels.js";
 import { targetAtTime, sweepMovingTarget } from "../game/level.js";
 
+import { drawBackground } from "./background.js";
+
 const ORIGIN = { x: 170, y: 455 };
 
 export class Game {
   constructor({ level = levels[0], target, arrows = level.arrows, app } = {}) {
     this.app = app;
+    this.particles = [];
+    this.trail = [];
+    this.shake = 0;
     this.pauseUI = new Menu(
       "",
       [button("暫停", 115, () => app?.pause(this), { x: 1070, w: 192 })],
       { overlay: true },
     );
+    this.pauseUI.audio = app?.audio;
     this.level = level;
     this.definitions = target
       ? [{ x: target.x, y: target.y, size: target.height, motion: null }]
@@ -54,6 +60,7 @@ export class Game {
       point.buttons !== 1
     )
       return;
+    this.app?.audio?.play("draw");
     this.drag = { start: point, end: point, pointerId: point.pointerId };
   }
 
@@ -73,6 +80,8 @@ export class Game {
     if (!aim.cancelled) {
       this.arrow = launch(ORIGIN, aim.speed, aim.angle);
       this.remainingArrows--;
+      this.trail.length = 0;
+      this.app?.audio?.play("shoot");
     }
   }
 
@@ -94,6 +103,18 @@ export class Game {
 
   update(dt) {
     if (this.result) return;
+    this.shake = Math.max(0, this.shake - dt);
+    for (let i = this.particles.length - 1; i >= 0; i--) {
+      const p = this.particles[i];
+      p.life -= dt;
+      if (p.life <= 0) {
+        this.particles.splice(i, 1);
+        continue;
+      }
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+      p.vy += 400 * dt;
+    }
     const before = this.targets;
     this.elapsed += dt;
     this.targets = this.definitions.map((definition, index) => ({
@@ -101,9 +122,10 @@ export class Game {
       y: targetAtTime(definition, this.elapsed).y,
     }));
     this.target = this.targets[0];
-    this.scoreTexts = this.scoreTexts
-      .map((text) => ({ ...text, age: text.age + dt }))
-      .filter((text) => text.age < 1.2);
+    for (let i = this.scoreTexts.length - 1; i >= 0; i--) {
+      this.scoreTexts[i].age += dt;
+      if (this.scoreTexts[i].age >= 1.2) this.scoreTexts.splice(i, 1);
+    }
     if (!this.arrow) {
       this.finishIfReady();
       return;
@@ -132,6 +154,23 @@ export class Game {
     if (hit) {
       const points = scoreHit(hit.target, hit.y);
       this.score += points;
+      const bullseye = points === hit.target.rings[0].score;
+      this.app?.audio?.play(bullseye ? "bullseye" : "hit");
+      if (bullseye) this.shake = 0.22;
+      for (let i = 0; i < (bullseye ? 32 : 14); i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = 50 + Math.random() * 180;
+        this.particles.push({
+          x: hit.x,
+          y: hit.y,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed - 80,
+          life: 0.5 + Math.random() * 0.4,
+          color: bullseye
+            ? ["#f3c273", "#ef6461", "#f6f1db"][i % 3]
+            : "#c69a66",
+        });
+      }
       this.attached.push({
         ...attachArrow(next, hit, hit.target),
         targetIndex: hit.index,
@@ -143,7 +182,12 @@ export class Game {
       return;
     }
     this.arrow = next && next.x >= 0 && next.x <= 1280 ? next : null;
+    if (this.arrow) {
+      this.trail.push({ x: this.arrow.x, y: this.arrow.y });
+      if (this.trail.length > 14) this.trail.shift();
+    }
     if (this.arrow?.stopped) {
+      this.app?.audio?.play("ground");
       this.grounded.push(this.arrow);
       if (this.grounded.length > 40) this.grounded.shift();
       this.arrow = null;
@@ -164,10 +208,29 @@ export class Game {
   }
 
   render(ctx) {
-    ctx.fillStyle = "#b9d7dc";
-    ctx.fillRect(0, 0, 1280, 720);
-    ctx.fillStyle = "#203d38";
-    ctx.fillRect(0, 560, 1280, 160);
+    ctx.save();
+    if (this.shake > 0)
+      ctx.translate(
+        Math.sin(this.elapsed * 100) * this.shake * 18,
+        Math.cos(this.elapsed * 90) * this.shake * 10,
+      );
+    drawBackground(ctx, this.elapsed);
+    for (const p of this.particles) {
+      ctx.globalAlpha = Math.min(1, p.life * 2);
+      ctx.fillStyle = p.color;
+      ctx.fillRect(p.x, p.y, 5, 5);
+    }
+    ctx.globalAlpha = 1;
+    if (this.arrow) {
+      ctx.lineWidth = 3;
+      for (let i = 1; i < this.trail.length; i++) {
+        ctx.strokeStyle = `rgba(255, 248, 216, ${(i / this.trail.length) * 0.45})`;
+        ctx.beginPath();
+        ctx.moveTo(this.trail[i - 1].x, this.trail[i - 1].y);
+        ctx.lineTo(this.trail[i].x, this.trail[i].y);
+        ctx.stroke();
+      }
+    }
     ctx.fillStyle = "#16342f";
     ctx.font = "bold 36px sans-serif";
     ctx.fillText(`${this.level.id}. ${this.level.name}`, 48, 65);
@@ -298,6 +361,7 @@ export class Game {
         ctx.fill();
       } else this.drawArrow(ctx, this.arrow);
     }
+    ctx.restore();
   }
 
   drawTarget(ctx, target) {

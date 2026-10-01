@@ -30,7 +30,10 @@ export class Menu {
     if (this.pressed?.id !== p.pointerId) return;
     const button = this.pressed.button;
     this.pressed = null;
-    if (button && button === this.hit(p)) button.action();
+    if (button && button === this.hit(p)) {
+      this.audio?.play("button");
+      button.action();
+    }
   }
   onPointerCancel() {
     this.pressed = null;

@@ -4,11 +4,13 @@ import { HowTo } from "./HowTo.js";
 import { Game } from "./Game.js";
 import { Pause } from "./Pause.js";
 import { Result } from "./Result.js";
-export function createApp(manager, storage) {
+export function createApp(manager, storage, audio) {
   const app = {
     manager,
+    audio,
     storage,
     show(scene) {
+      scene.audio = audio;
       while (manager.current) manager.pop();
       manager.push(scene);
     },
@@ -31,6 +33,7 @@ export function createApp(manager, storage) {
       }
     },
     finish(level, result) {
+      audio?.play("clear");
       storage.record(level.id, result);
       app.show(new Result(app, level, result));
     },

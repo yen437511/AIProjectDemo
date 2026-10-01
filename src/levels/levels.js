@@ -23,7 +23,7 @@ export const levels = [
       { x: 1060, y: 360, size: 180, motion: { amplitude: 65, period: 4 } },
     ],
     wind: 0,
-    starThresholds: [20, 36, 50],
+    starThresholds: [20, 36, 44],
   },
   {
     id: 4,
@@ -31,7 +31,7 @@ export const levels = [
     arrows: 6,
     targets: [{ x: 850, y: 380, size: 180, motion: null }],
     wind: -65,
-    starThresholds: [20, 36, 50],
+    starThresholds: [20, 36, 46],
   },
   {
     id: 5,
@@ -41,6 +41,6 @@ export const levels = [
       { x: 1080, y: 350, size: 160, motion: { amplitude: 75, period: 3.5 } },
     ],
     wind: 80,
-    starThresholds: [24, 42, 60],
+    starThresholds: [24, 42, 52],
   },
 ];

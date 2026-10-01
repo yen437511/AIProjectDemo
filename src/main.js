@@ -6,12 +6,26 @@ import { startLoop } from "./core/loop.js";
 import { createApp } from "./scenes/app.js";
 import { createStorage } from "./core/storage.js";
 
+import { createAudio } from "./core/audio.js";
+
+const audio = createAudio({
+  contextFactory: () =>
+    new (window.AudioContext || window.webkitAudioContext)(),
+  storage: {
+    getItem: (key) => window.localStorage.getItem(key),
+    setItem: (key, value) => window.localStorage.setItem(key, value),
+  },
+});
+const unlockAudio = () => audio.unlock();
+window.addEventListener("pointerdown", unlockAudio, { capture: true });
+window.addEventListener("keydown", unlockAudio, { capture: true });
 const canvas = document.querySelector("#game");
 const ctx = canvas.getContext("2d");
 const manager = new SceneManager();
 const app = createApp(
   manager,
   createStorage(() => window.localStorage),
+  audio,
 );
 app.title();
 const keydown = (event) => {
@@ -56,6 +70,9 @@ if (import.meta.hot)
   import.meta.hot.dispose(() => {
     window.removeEventListener("keydown", keydown);
     document.removeEventListener("visibilitychange", visibility);
+    audio.dispose();
+    window.removeEventListener("pointerdown", unlockAudio, { capture: true });
+    window.removeEventListener("keydown", unlockAudio, { capture: true });
     stop();
     detachInput();
     window.removeEventListener("resize", resize);
