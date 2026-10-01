@@ -5,6 +5,7 @@ import {
   previewTrajectory,
 } from "../game/physics.js";
 
+import { Menu, button } from "./Menu.js";
 import { attachArrow, attachedPosition } from "../game/target.js";
 import { calculateStars, scoreHit } from "../game/scoring.js";
 
@@ -14,7 +15,13 @@ import { targetAtTime, sweepMovingTarget } from "../game/level.js";
 const ORIGIN = { x: 170, y: 455 };
 
 export class Game {
-  constructor({ level = levels[0], target, arrows = level.arrows } = {}) {
+  constructor({ level = levels[0], target, arrows = level.arrows, app } = {}) {
+    this.app = app;
+    this.pauseUI = new Menu(
+      "",
+      [button("暫停", 115, () => app?.pause(this), { x: 1070, w: 192 })],
+      { overlay: true },
+    );
     this.level = level;
     this.definitions = target
       ? [{ x: target.x, y: target.y, size: target.height, motion: null }]
@@ -35,12 +42,9 @@ export class Game {
   }
 
   onPointerDown(point) {
-    if (this.result) {
-      if (point.buttons !== 1) return;
-      const index = levels.findIndex((level) => level.id === this.level.id);
-      const level =
-        point.x < 640 ? this.level : levels[(index + 1) % levels.length];
-      Object.assign(this, new Game({ level }));
+    if (this.result) return;
+    if (this.pauseUI.hit(point)) {
+      this.pauseUI.onPointerDown(point);
       return;
     }
     if (
@@ -54,10 +58,15 @@ export class Game {
   }
 
   onPointerMove(point) {
+    this.pauseUI.onPointerMove(point);
     if (this.drag?.pointerId === point.pointerId) this.drag.end = point;
   }
 
   onPointerUp(point) {
+    if (this.pauseUI.pressed) {
+      this.pauseUI.onPointerUp(point);
+      return;
+    }
     if (this.drag?.pointerId !== point.pointerId) return;
     const aim = aimFromDrag(this.drag.start, point);
     this.drag = null;
@@ -68,7 +77,15 @@ export class Game {
   }
 
   onPointerCancel(point) {
+    this.pauseUI.onPointerCancel();
     if (this.drag?.pointerId === point.pointerId) this.drag = null;
+  }
+
+  onKeyDown(key) {
+    if (key === "escape" || key === "p") this.app?.pause(this);
+  }
+  onHidden() {
+    this.app?.pause(this);
   }
 
   exit() {
@@ -140,7 +157,9 @@ export class Game {
         score: this.score,
         stars: calculateStars(this.score, this.level.starThresholds),
         maxScore: this.level.arrows * 10,
+        accuracy: this.attached.length / this.level.arrows,
       };
+      this.app?.finish(this.level, this.result);
     }
   }
 
@@ -254,18 +273,20 @@ export class Game {
       });
     }
     for (const arrow of this.grounded) this.drawArrow(ctx, arrow);
-    if (this.result) {
-      ctx.fillStyle = "#16342fee";
-      ctx.fillRect(280, 220, 720, 260);
-      ctx.fillStyle = "#f6f1db";
+    ctx.save();
+    for (const b of this.pauseUI.buttons) {
+      ctx.fillStyle =
+        this.pauseUI.pressed?.button === b
+          ? "#bb8437"
+          : this.pauseUI.hover === b
+            ? "#f3c273"
+            : "#d69945";
+      ctx.fillRect(b.x, b.y, b.w, b.h);
+      ctx.fillStyle = "#16342f";
       ctx.font = "32px sans-serif";
-      ctx.fillText(
-        `結算：${this.result.stars} 星　${this.score} / ${this.result.maxScore}`,
-        330,
-        300,
-      );
-      ctx.fillText("點左側重玩　／　點右側下一關", 330, 400);
+      ctx.fillText(b.label, b.x + 55, b.y + 95);
     }
+    ctx.restore();
     if (this.arrow) {
       if (this.arrow.y < 0) {
         ctx.fillStyle = "#16342f";

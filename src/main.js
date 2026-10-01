@@ -3,12 +3,29 @@ import { WIDTH, HEIGHT, resizeCanvas } from "./core/scaling.js";
 import { SceneManager } from "./core/sceneManager.js";
 import { attachInput } from "./core/input.js";
 import { startLoop } from "./core/loop.js";
-import { Game } from "./scenes/Game.js";
+import { createApp } from "./scenes/app.js";
+import { createStorage } from "./core/storage.js";
 
 const canvas = document.querySelector("#game");
 const ctx = canvas.getContext("2d");
 const manager = new SceneManager();
-manager.push(new Game());
+const app = createApp(
+  manager,
+  createStorage(() => window.localStorage),
+);
+app.title();
+const keydown = (event) => {
+  const key = event.key.toLowerCase();
+  if (!event.repeat && ["escape", "p"].includes(key)) {
+    event.preventDefault();
+    manager.current?.onKeyDown?.(key);
+  }
+};
+const visibility = () => {
+  if (document.hidden) manager.current?.onHidden?.();
+};
+window.addEventListener("keydown", keydown);
+document.addEventListener("visibilitychange", visibility);
 const resize = () =>
   resizeCanvas(
     canvas,
@@ -37,6 +54,8 @@ const stop = startLoop({
 });
 if (import.meta.hot)
   import.meta.hot.dispose(() => {
+    window.removeEventListener("keydown", keydown);
+    document.removeEventListener("visibilitychange", visibility);
     stop();
     detachInput();
     window.removeEventListener("resize", resize);
