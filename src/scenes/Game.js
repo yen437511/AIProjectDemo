@@ -5,19 +5,26 @@ import {
   previewTrajectory,
 } from "../game/physics.js";
 
-import {
-  createTarget,
-  sweepTarget,
-  attachArrow,
-  attachedPosition,
-} from "../game/target.js";
-import { scoreHit } from "../game/scoring.js";
+import { attachArrow, attachedPosition } from "../game/target.js";
+import { calculateStars, scoreHit } from "../game/scoring.js";
+
+import { levels } from "../levels/levels.js";
+import { targetAtTime, sweepMovingTarget } from "../game/level.js";
 
 const ORIGIN = { x: 170, y: 455 };
 
 export class Game {
-  constructor({ target = createTarget(), arrows = 10 } = {}) {
-    this.target = target;
+  constructor({ level = levels[0], target, arrows = level.arrows } = {}) {
+    this.level = level;
+    this.definitions = target
+      ? [{ x: target.x, y: target.y, size: target.height, motion: null }]
+      : level.targets;
+    this.targets = target
+      ? [target]
+      : this.definitions.map((definition) => targetAtTime(definition, 0));
+    this.target = this.targets[0];
+    this.elapsed = 0;
+    this.result = null;
     this.remainingArrows = arrows;
     this.score = 0;
     this.attached = [];
@@ -28,6 +35,14 @@ export class Game {
   }
 
   onPointerDown(point) {
+    if (this.result) {
+      if (point.buttons !== 1) return;
+      const index = levels.findIndex((level) => level.id === this.level.id);
+      const level =
+        point.x < 640 ? this.level : levels[(index + 1) % levels.length];
+      Object.assign(this, new Game({ level }));
+      return;
+    }
     if (
       this.drag ||
       this.arrow ||
@@ -61,20 +76,53 @@ export class Game {
   }
 
   update(dt) {
+    if (this.result) return;
+    const before = this.targets;
+    this.elapsed += dt;
+    this.targets = this.definitions.map((definition, index) => ({
+      ...before[index],
+      y: targetAtTime(definition, this.elapsed).y,
+    }));
+    this.target = this.targets[0];
     this.scoreTexts = this.scoreTexts
       .map((text) => ({ ...text, age: text.age + dt }))
       .filter((text) => text.age < 1.2);
-    if (!this.arrow) return;
+    if (!this.arrow) {
+      this.finishIfReady();
+      return;
+    }
     const previous = this.arrow;
     // Sweep before boundary removal so fast arrows cannot skip the target.
-    const next = advanceArrow(previous, dt, { width: Infinity });
-    const hit = next && sweepTarget(previous, next, this.target);
+    const next = advanceArrow(previous, dt, {
+      width: Infinity,
+      wind: this.level.wind,
+    });
+    const hits = next
+      ? this.targets
+          .map((target, index) => {
+            const hit = sweepMovingTarget(
+              previous,
+              next,
+              before[index],
+              target,
+            );
+            return hit && { ...hit, index };
+          })
+          .filter(Boolean)
+          .sort((a, b) => a.fraction - b.fraction)
+      : [];
+    const hit = hits[0];
     if (hit) {
-      const points = scoreHit(this.target, hit.y);
+      const points = scoreHit(hit.target, hit.y);
       this.score += points;
-      this.attached.push(attachArrow(next, hit, this.target));
+      this.attached.push({
+        ...attachArrow(next, hit, hit.target),
+        targetIndex: hit.index,
+      });
+      // Store offset against the contact-time target, then render at its current position.
       this.scoreTexts.push({ x: hit.x, y: hit.y, points, age: 0 });
       this.arrow = null;
+      this.finishIfReady();
       return;
     }
     this.arrow = next && next.x >= 0 && next.x <= 1280 ? next : null;
@@ -82,6 +130,17 @@ export class Game {
       this.grounded.push(this.arrow);
       if (this.grounded.length > 40) this.grounded.shift();
       this.arrow = null;
+    }
+    this.finishIfReady();
+  }
+
+  finishIfReady() {
+    if (this.remainingArrows === 0 && !this.arrow) {
+      this.result = {
+        score: this.score,
+        stars: calculateStars(this.score, this.level.starThresholds),
+        maxScore: this.level.arrows * 10,
+      };
     }
   }
 
@@ -92,7 +151,7 @@ export class Game {
     ctx.fillRect(0, 560, 1280, 160);
     ctx.fillStyle = "#16342f";
     ctx.font = "bold 36px sans-serif";
-    ctx.fillText("Archer Line", 48, 65);
+    ctx.fillText(`${this.level.id}. ${this.level.name}`, 48, 65);
     ctx.font = "22px sans-serif";
     ctx.fillText(
       this.arrow
@@ -107,9 +166,17 @@ export class Game {
     ctx.fillText("剩餘箭矢", 680, 65);
     for (let i = 0; i < this.remainingArrows; i++)
       this.drawArrow(ctx, { x: 835 + i * 38, y: 58, angle: -Math.PI / 4 });
-    this.drawTarget(ctx);
+    ctx.fillText(
+      `風 ${this.level.wind === 0 ? "無風" : this.level.wind > 0 ? "→" : "←"} ${Math.abs(this.level.wind)}`,
+      480,
+      105,
+    );
+    for (const target of this.targets) this.drawTarget(ctx, target);
     for (const arrow of this.attached)
-      this.drawArrow(ctx, attachedPosition(arrow, this.target));
+      this.drawArrow(
+        ctx,
+        attachedPosition(arrow, this.targets[arrow.targetIndex]),
+      );
     for (const text of this.scoreTexts) {
       ctx.save();
       ctx.globalAlpha = 1 - text.age / 1.2;
@@ -161,7 +228,9 @@ export class Game {
     ctx.restore();
     if (aim) {
       ctx.fillStyle = "#16342f";
-      for (const point of previewTrajectory(launch(ORIGIN, aim.speed, angle))) {
+      for (const point of previewTrajectory(launch(ORIGIN, aim.speed, angle), {
+        wind: this.level.wind,
+      })) {
         ctx.beginPath();
         ctx.arc(point.x, point.y, 3, 0, Math.PI * 2);
         ctx.fill();
@@ -185,6 +254,18 @@ export class Game {
       });
     }
     for (const arrow of this.grounded) this.drawArrow(ctx, arrow);
+    if (this.result) {
+      ctx.fillStyle = "#16342fee";
+      ctx.fillRect(280, 220, 720, 260);
+      ctx.fillStyle = "#f6f1db";
+      ctx.font = "32px sans-serif";
+      ctx.fillText(
+        `結算：${this.result.stars} 星　${this.score} / ${this.result.maxScore}`,
+        330,
+        300,
+      );
+      ctx.fillText("點左側重玩　／　點右側下一關", 330, 400);
+    }
     if (this.arrow) {
       if (this.arrow.y < 0) {
         ctx.fillStyle = "#16342f";
@@ -198,8 +279,8 @@ export class Game {
     }
   }
 
-  drawTarget(ctx) {
-    const { x, y, width, height, rings } = this.target;
+  drawTarget(ctx, target) {
+    const { x, y, width, height, rings } = target;
     ctx.strokeStyle = "#765139";
     ctx.lineWidth = 8;
     ctx.beginPath();
